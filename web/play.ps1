@@ -9,7 +9,8 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $bsApi = 'https://api.beatsaver.com'
 $root = [IO.Path]::GetFullPath((Split-Path -Parent (Split-Path -Parent $PSCommandPath)))
-if (-not $root.EndsWith('\')) { $root += '\' }
+$sep = [string][IO.Path]::DirectorySeparatorChar
+if (-not $root.EndsWith($sep)) { $root += $sep }
 
 $types = @{
   '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'
@@ -173,7 +174,7 @@ while ($listener.IsListening) {
       Send $res ([Text.Encoding]::UTF8.GetBytes($json)) 'application/json'
     }
     else {
-      $path = [IO.Path]::GetFullPath((Join-Path $root ($rel -replace '/', '\')))
+      $path = [IO.Path]::GetFullPath((Join-Path $root ($rel.Replace('/', $sep))))
       if (-not $path.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
         $res.StatusCode = 403
       }
