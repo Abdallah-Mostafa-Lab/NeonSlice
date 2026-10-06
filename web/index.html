@@ -1,0 +1,134 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Neon Slice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+  /* Layout: live 3D scene fills the window; one start card floats over it on the left. */
+  :root {
+    --bg: #05020d;
+    --card: rgba(14, 8, 30, 0.86);
+    --line: rgba(138, 77, 255, 0.45);
+    --fg: #f2ecff;
+    --dim: #a99cc8;
+    --faint: #6f6492;
+    --left: #ff2152;
+    --right: #1f8cff;
+    --violet: #8a4dff;
+    --good: #4dffa6;
+    --bad: #ff6b81;
+    --display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+    --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 400 16px/1.5 var(--body); overflow: hidden; }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .wrap { position: relative; height: 100%; overflow-y: auto; padding-inline: 16px; padding-block: 24px; box-sizing: border-box; }
+  .card {
+    max-width: 30rem; background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 28px; backdrop-filter: blur(6px); box-shadow: 0 0 60px rgba(138, 77, 255, 0.18);
+    display: grid; gap: 22px;
+  }
+  @media (min-width: 760px) { .wrap { padding-inline: 6vw; padding-block: 8vh; } }
+  .eyebrow { font: 600 0.78rem/1 var(--display); letter-spacing: 0.22em; color: var(--dim); text-transform: uppercase; margin: 0; }
+  h1 {
+    margin: 6px 0 0; font: 700 clamp(2.6rem, 8vw, 3.8rem)/0.95 var(--display); letter-spacing: 0.04em;
+    background: linear-gradient(90deg, var(--left), var(--violet) 55%, var(--right)); -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-wrap: balance;
+  }
+  p { margin: 0; color: var(--dim); max-width: 60ch; }
+  .lead { color: var(--fg); }
+  .lead b { font-weight: 600; }
+  .lead .l { color: var(--left); } .lead .r { color: var(--right); }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  button, .filebtn {
+    font: 600 1rem/1 var(--display); letter-spacing: 0.06em; color: var(--fg); cursor: pointer;
+    border-radius: 12px; padding: 14px 20px; border: 1px solid var(--line); background: rgba(138, 77, 255, 0.14);
+  }
+  button:hover, .filebtn:hover { background: rgba(138, 77, 255, 0.32); }
+  button:focus-visible, .filebtn:focus-within { outline: 2px solid var(--good); outline-offset: 2px; }
+  button.primary { background: linear-gradient(90deg, rgba(255, 33, 82, 0.85), rgba(31, 140, 255, 0.85)); border-color: transparent; font-size: 1.1rem; padding: 16px 26px; }
+  button.primary:disabled { background: rgba(255, 255, 255, 0.08); color: var(--faint); cursor: not-allowed; }
+  button.ghost { padding: 8px 12px; font-size: 0.85rem; background: transparent; }
+  .note { font-size: 0.92rem; color: var(--faint); }
+  section { display: grid; gap: 12px; }
+  h2 { margin: 0; font: 600 0.85rem/1 var(--display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
+  #import { border: 1px dashed var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 10px; }
+  #import.drag { border-color: var(--good); background: rgba(77, 255, 166, 0.06); }
+  .filebtn { display: inline-flex; width: fit-content; align-items: center; }
+  .filebtn input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  #library { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  #library li { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; }
+  .cover { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; display: grid; place-items: center;
+    font: 700 1.2rem var(--display); background: linear-gradient(135deg, hsl(var(--h, 280) 90% 55%), hsl(calc(var(--h, 280) + 60) 90% 30%)); }
+  .meta { min-width: 0; display: grid; }
+  .meta strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta span { font-size: 0.85rem; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #status { min-height: 1.5em; font-size: 0.92rem; color: var(--dim); }
+  #status[data-kind="ok"] { color: var(--good); }
+  #status[data-kind="error"] { color: var(--bad); }
+  details { border-top: 1px solid rgba(138, 77, 255, 0.25); padding-top: 14px; }
+  summary { cursor: pointer; font: 600 0.95rem var(--display); letter-spacing: 0.06em; }
+  details ol { margin: 10px 0 0; padding-left: 1.2rem; color: var(--dim); display: grid; gap: 6px; }
+  kbd { font: 500 0.85em var(--display); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+  .ingame-hint { position: fixed; left: 16px; bottom: 16px; font: 500 0.85rem var(--display); color: var(--faint); letter-spacing: 0.08em; display: none; }
+  body.in-game .ingame-hint { display: block; }
+  body.in-game .wrap { pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<canvas id="scene" aria-label="Neon Slice game view"></canvas>
+
+<div class="wrap">
+  <main class="card" id="start">
+    <div>
+      <p class="eyebrow">WebXR rhythm game · Meta Quest 3</p>
+      <h1>NEON SLICE</h1>
+    </div>
+    <p class="lead">Cut <b class="l">red</b> blocks with your left saber and <b class="r">blue</b> with your right, swinging the way each arrow points. Big swings and centred cuts score up to 115 per block.</p>
+
+    <div class="actions">
+      <button class="primary" id="enter-vr" type="button" disabled>Enter VR</button>
+      <button id="play-desktop" type="button">Play on desktop</button>
+    </div>
+    <p class="note" id="vr-note">Checking for VR support…</p>
+
+    <section aria-labelledby="lib-h">
+      <h2 id="lib-h">Your maps</h2>
+      <div id="import">
+        <p>Two synth songs are built in. Add Beat Saber custom maps here, then pick them from the song list in the game. A Songs folder can hold many maps, each in its own sub-folder.</p>
+        <div class="actions">
+          <label class="filebtn">Choose Songs folder<input id="map-folder" type="file" webkitdirectory directory multiple></label>
+          <label class="filebtn">Choose .zip files<input id="map-file" type="file" accept=".zip,application/zip" multiple></label>
+        </div>
+      </div>
+      <p class="note" id="library-empty">No imported maps yet.</p>
+      <ul id="library"></ul>
+      <p id="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <details>
+      <summary>Playing on Quest</summary>
+      <ol>
+        <li>Open this page in the <b>Meta Quest Browser</b> on your headset.</li>
+        <li>To add maps, download a map zip from BeatSaver in the headset browser, then choose it here.</li>
+        <li>Press <b>Enter VR</b>. Point at the menu and pull the trigger to choose.</li>
+        <li>Press <kbd>B</kbd> or <kbd>Y</kbd> to pause. Run <b>Settings → Calibrate</b> once so the notes match the music.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Desktop controls</summary>
+      <ol>
+        <li>Move the mouse to swing one saber that cuts both colours.</li>
+        <li>Click to choose in menus. <kbd>Esc</kbd> pauses.</li>
+      </ol>
+    </details>
+  </main>
+</div>
+<p class="ingame-hint">Esc pauses</p>
+
+<script src="game.js"></script>
+
+</body></html>
