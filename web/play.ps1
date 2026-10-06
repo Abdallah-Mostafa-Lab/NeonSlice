@@ -48,6 +48,44 @@ function Send($res, [byte[]]$bytes, $type) {
   $res.OutputStream.Write($bytes, 0, $bytes.Length)
 }
 
+$songsDir = Join-Path $root 'Songs'
+
+function Get-SongFolders {
+  if (-not (Test-Path -LiteralPath $songsDir -PathType Container)) { return @() }
+  return @(Get-ChildItem -LiteralPath $songsDir | Where-Object { $_.PSIsContainer -or $_.Extension -ieq '.zip' } |
+    Sort-Object Name | ForEach-Object { $_.Name })
+}
+
+function Get-SongIndexJson {
+  $names = Get-SongFolders
+  return '[' + (($names | ForEach-Object { ConvertTo-Json -InputObject $_ -Compress }) -join ',') + ']'
+}
+
+# Keep Songs\index.json on disk up to date, so the folder also works when
+# uploaded to a web host (hosts usually don't list folders).
+function Write-SongIndex {
+  try {
+    if (Test-Path -LiteralPath $songsDir -PathType Container) {
+      [IO.File]::WriteAllText((Join-Path $songsDir 'index.json'), (Get-SongIndexJson), (New-Object Text.UTF8Encoding $false))
+    }
+  } catch { }
+}
+
+# Remove one map folder from Songs. On Windows it goes to the Recycle Bin.
+function Remove-Map([string]$name) {
+  $bad = [IO.Path]::GetInvalidFileNameChars()
+  if (-not $name -or $name -eq '.' -or $name -eq '..' -or $name.IndexOfAny($bad) -ge 0) { throw 'Bad folder name.' }
+  $dir = Join-Path $songsDir $name
+  $isZip = $name -match '\.zip$' -and (Test-Path -LiteralPath $dir -PathType Leaf)
+  if (-not $isZip -and -not (Test-Path -LiteralPath $dir -PathType Container)) { throw 'That map is not in the Songs folder.' }
+  if ($env:OS -eq 'Windows_NT') {
+    Add-Type -AssemblyName Microsoft.VisualBasic
+    if ($isZip) { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($dir, 'OnlyErrorDialogs', 'SendToRecycleBin') }
+    else { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($dir, 'OnlyErrorDialogs', 'SendToRecycleBin') }
+  }
+  else { Remove-Item -LiteralPath $dir -Recurse -Force }
+}
+
 function SendJson($res, $obj, [int]$status = 200) {
   $res.StatusCode = $status
   Send $res ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $obj -Compress -Depth 4))) 'application/json'
@@ -91,7 +129,6 @@ function Install-Map([string]$key, [string]$zipUrl, [string]$name) {
   $bad = [IO.Path]::GetInvalidFileNameChars()
   if (-not $name -or $name.Length -gt 120 -or $name.IndexOfAny($bad) -ge 0 -or $name.Contains('..') -or
       -not $name.StartsWith("$key (", [StringComparison]::OrdinalIgnoreCase)) { throw 'Bad folder name.' }
-  $songsDir = Join-Path $root 'Songs'
   if (-not (Test-Path -LiteralPath $songsDir)) { New-Item -ItemType Directory -Path $songsDir | Out-Null }
   $dest = Join-Path $songsDir $name
   if (Test-Path -LiteralPath $dest) { return $name }   # already installed
@@ -117,6 +154,8 @@ function Install-Map([string]$key, [string]$zipUrl, [string]$name) {
     if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue }
   }
 }
+
+Write-SongIndex
 
 while ($listener.IsListening) {
   $ctx = $listener.GetContext()
@@ -156,6 +195,7 @@ while ($listener.IsListening) {
         $q = $req.QueryString
         $folder = Install-Map ([string]$q['key']) ([string]$q['url']) ([string]$q['name'])
         Write-Host "  Installed: $folder" -ForegroundColor Green
+        Write-SongIndex
         SendJson $res @{ ok = $true; folder = $folder }
       }
       catch {
@@ -163,15 +203,22 @@ while ($listener.IsListening) {
         SendJson $res @{ ok = $false; error = $_.Exception.Message } 502
       }
     }
+    elseif ($rel -eq '__neon/delete') {
+      try {
+        $folder = [string]$req.QueryString['folder']
+        Remove-Map $folder
+        Write-Host "  Removed: $folder" -ForegroundColor Yellow
+        Write-SongIndex
+        SendJson $res @{ ok = $true }
+      }
+      catch {
+        Write-Host "  Remove failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        SendJson $res @{ ok = $false; error = $_.Exception.Message } 400
+      }
+    }
     elseif ($rel -ieq 'Songs/index.json') {
       # The game asks for this list to find every map folder.
-      $songsDir = Join-Path $root 'Songs'
-      $names = @()
-      if (Test-Path -LiteralPath $songsDir -PathType Container) {
-        $names = @(Get-ChildItem -LiteralPath $songsDir -Directory | ForEach-Object { $_.Name })
-      }
-      $json = '[' + (($names | ForEach-Object { ConvertTo-Json -InputObject $_ -Compress }) -join ',') + ']'
-      Send $res ([Text.Encoding]::UTF8.GetBytes($json)) 'application/json'
+      Send $res ([Text.Encoding]::UTF8.GetBytes((Get-SongIndexJson))) 'application/json'
     }
     else {
       $path = [IO.Path]::GetFullPath((Join-Path $root ($rel.Replace('/', $sep))))
