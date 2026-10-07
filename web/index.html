@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
-<title>Neon Slice</title>
+<title>Afterglow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -66,6 +66,12 @@
   .meta { min-width: 0; display: grid; }
   .meta strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .meta span { font-size: 0.85rem; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Loading row: shown while maps from the Songs folder are still downloading. */
+  #library li.loading .cover { background: rgba(255,255,255,0.05); position: relative; }
+  #library li.loading .cover::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.12); border-top-color: #ffc94d; animation: spin 0.9s linear infinite; }
+  #library li.loading progress { width: 7rem; height: 6px; accent-color: #ffc94d; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { #library li.loading .cover::after { animation-duration: 3s; } }
   #status { min-height: 1.5em; font-size: 0.92rem; color: var(--dim); }
   #status[data-kind="ok"] { color: var(--good); }
   #status[data-kind="error"] { color: var(--bad); }
@@ -79,13 +85,13 @@
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
-<canvas id="scene" aria-label="Neon Slice game view"></canvas>
+<canvas id="scene" aria-label="Afterglow game view"></canvas>
 
 <div class="wrap">
   <main class="card" id="start">
     <div>
       <p class="eyebrow">WebXR rhythm game · Meta Quest 3</p>
-      <h1>NEON SLICE</h1>
+      <h1>AFTERGLOW</h1>
     </div>
     <p class="lead">Cut <b class="l">red</b> blocks with your left saber and <b class="r">blue</b> with your right, swinging the way each arrow points. Big swings and centred cuts score up to 115 per block.</p>
 
@@ -98,7 +104,7 @@
     <section aria-labelledby="lib-h">
       <h2 id="lib-h">Your maps</h2>
       <div id="import">
-        <p>Two synth songs are built in. Add Beat Saber custom maps here, then pick them from the song list in the game. A Songs folder can hold many maps, each in its own sub-folder.</p>
+        <p>Add Beat Saber custom maps here, then pick them from the song list in the game. A Songs folder can hold many maps, each in its own sub-folder.</p>
         <div class="actions">
           <label class="filebtn">Choose Songs folder<input id="map-folder" type="file" webkitdirectory directory multiple></label>
           <label class="filebtn">Choose .zip files<input id="map-file" type="file" accept=".zip,application/zip" multiple></label>
@@ -115,7 +121,7 @@
         <li>Open this page in the <b>Meta Quest Browser</b> on your headset.</li>
         <li>To add maps, download a map zip from BeatSaver in the headset browser, then choose it here.</li>
         <li>Press <b>Enter VR</b>. Point at the menu and pull the trigger to choose.</li>
-        <li>Press <kbd>B</kbd> or <kbd>Y</kbd> to pause. Run <b>Settings → Calibrate</b> once so the notes match the music.</li>
+        <li>Press the <b>menu button on the left controller</b> to pause. Run <b>Settings → Calibrate</b> once so the notes match the music.</li>
       </ol>
     </details>
     <details>
@@ -129,6 +135,6 @@
 </div>
 <p class="ingame-hint">Esc pauses</p>
 
-<script src="game.js?v=50"></script>
+<script src="game.js?v=54"></script>
 
 </body></html>

@@ -1,4 +1,4 @@
-# Neon Slice local launcher.
+# Afterglow local launcher.
 # Serves the NeonSlice folder on http://localhost so the game can read the
 # Songs folder, then opens the game in your default browser.
 # Close this window to stop the game server.
@@ -34,7 +34,7 @@ if (-not $listener) {
 
 $url = "http://localhost:$port/web/"
 Write-Host ''
-Write-Host '  NEON SLICE' -ForegroundColor Magenta
+Write-Host '  AFTERGLOW' -ForegroundColor Magenta
 Write-Host "  Playing at $url"
 Write-Host "  Songs folder: $($root)Songs"
 Write-Host '  Add or remove song folders, then reload the page to rescan.'
